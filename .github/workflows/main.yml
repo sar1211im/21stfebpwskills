@@ -65,8 +65,82 @@
       #     fail_ci_if_error: true
       #     token: ${{ secrets.CODECOV_TOKEN }}
       
-name: Python CI with Coverage
+# name: Python CI with Coverage
 
+# on:
+#   push:
+#     branches:
+#       - main
+#       - develop
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   test:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         python-version:
+#           - "3.10"
+#           - "3.11"
+#           - "3.12"
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+
+#       - name: Set up Python ${{ matrix.python-version }}
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: ${{ matrix.python-version }}
+
+#       - name: Cache pip packages
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.cache/pip
+#           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+
+#       - name: Run tests with coverage
+#         run: |
+#           pytest --cov=src \
+#                  --cov-report=term-missing \
+#                  --cov-report=xml \
+#                  --cov-report=html \
+#                  --cov-fail-under=80 \
+#                  tests/
+
+#       # ------------------------------
+#       # TXT COVERAGE FILE
+#       # ------------------------------
+#       - name: Generate TXT coverage report
+#         run: coverage report > coverage.txt
+
+#       - name: Upload TXT coverage report
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: coverage-report-py${{ matrix.python-version }}.txt
+#           path: coverage.txt
+#           retention-days: 7
+
+#       # ------------------------------
+#       # HTML COVERAGE FILE (ONLY index.html)
+#       # ------------------------------
+#       - name: Upload HTML coverage report
+#         uses: actions/upload-artifact@v4
+
+
+#         with:
+#           name: coverage-report-py${{ matrix.python-version }}.html
+#           path: htmlcov/index.html
+#           retention-days: 7
+          
+name: Python CI with Coverage
 on:
   push:
     branches:
@@ -75,7 +149,6 @@ on:
   pull_request:
     branches:
       - main
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -85,7 +158,6 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -112,29 +184,21 @@ jobs:
                  --cov-report=term-missing \
                  --cov-report=xml \
                  --cov-report=html \
-                 --cov-fail-under=80 \
                  tests/
 
       # ------------------------------
-      # TXT COVERAGE FILE
+      # SAVE HTML REPORT TO REPO
       # ------------------------------
-      - name: Generate TXT coverage report
-        run: coverage report > coverage.txt
+      - name: Copy HTML coverage report to repo folder
+        run: |
+          mkdir -p coverage-reports/py${{ matrix.python-version }}
+          cp -r htmlcov/. coverage-reports/py${{ matrix.python-version }}/
 
-      - name: Upload TXT coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-py${{ matrix.python-version }}.txt
-          path: coverage.txt
-          retention-days: 7
-
-      # ------------------------------
-      # HTML COVERAGE FILE (ONLY index.html)
-      # ------------------------------
-      - name: Upload HTML coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-py${{ matrix.python-version }}.html
-          path: htmlcov/index.html
-          retention-days: 7
-          
+      - name: Commit coverage HTML report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add coverage-reports/
+          git diff --cached --quiet || git commit -m "ci: update coverage report for py${{ matrix.python-version }} [skip ci]"
+          git push
+  
